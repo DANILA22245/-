@@ -16,5 +16,14 @@
     "registeredAt": "2026-02-12T18:30:16.717192",
     "status": "active",
     "password": "Kp8-eZd-vQw-cQM"
+  },
+  {
+    "id": 3,
+    "username": "DYPolyakov",
+    "dubina": "444",
+    "age": "44",
+    "registeredAt": "2026-02-13T17:23:24.173278",
+    "status": "active",
+    "password": "444444"
   }
 ]
