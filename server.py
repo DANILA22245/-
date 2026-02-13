@@ -221,27 +221,7 @@ def currency_page():
     
     return render_template('currency.html')
 
-@app.route('/api/currency-rates/history', methods=['GET'])
-def currency_history():
-    """Получение истории курсов за период"""
-    try:
-        days = request.args.get('days', 365, type=int)
-        result = get_currency_history(days)
-        return jsonify(result), 200
-    except Exception as e:
-        print(f"Ошибка получения истории курсов: {e}")
-        return jsonify({'success': False, 'error': 'Ошибка сервера'}), 500
 
-
-@app.route('/api/currency-rates/last-week', methods=['GET'])
-def currency_last_week():
-    """Получение курсов за последние 7 дней"""
-    try:
-        result = get_currency_last_week()
-        return jsonify(result), 200
-    except Exception as e:
-        print(f"Ошибка получения данных за неделю: {e}")
-        return jsonify({'success': False, 'error': 'Ошибка сервера'}), 500
 
 if __name__ == '__main__':
     print("=" * 50)

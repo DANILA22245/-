@@ -1,11 +1,9 @@
 services:
   - type: web
-    name: -
+    name: main
     env: python
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "gunicorn server:app"
-    envVars:
-      - key: FLASK_ENV
-        value: production
-      - key: PORT
-        value: 5000
+    buildCommand: |
+      apt-get update
+      apt-get install -y libxml2-dev libxslt-dev
+      pip install -r requirements.txt
+    startCommand: gunicorn server:app
