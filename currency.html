@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Курс доллара | Polyak Production</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(30, 30, 50, 0.8);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 2px solid #ffd700;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #ffd700;
+        }
+
+        .header h1 {
+            font-size: 36px;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #ffd700, #ff6b6b, #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 2px 10px rgba(255, 215, 0, 0.3);
+            letter-spacing: 2px;
+        }
+
+        .header p {
+            color: #aaa;
+            font-size: 16px;
+            margin-top: 5px;
+        }
+
+        .rates-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .currency-card {
+            background: rgba(40, 40, 70, 0.9);
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+            border: 2px solid #444;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .currency-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4);
+            border-color: #ffd700;
+        }
+
+        .currency-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 215, 0, 0.1) 0%, transparent 70%);
+            z-index: 0;
+        }
+
+        .currency-card.usd {
+            border-top: 5px solid #1e88e5;
+        }
+
+        .currency-card.eur {
+            border-top: 5px solid #2e7d32;
+        }
+
+        .currency-symbol {
+            font-size: 64px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .currency-card.usd .currency-symbol {
+            color: #1e88e5;
+            text-shadow: 0 0 20px rgba(30, 136, 229, 0.5);
+        }
+
+        .currency-card.eur .currency-symbol {
+            color: #2e7d32;
+            text-shadow: 0 0 20px rgba(46, 125, 50, 0.5);
+        }
+
+        .currency-name {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .currency-rate {
+            font-size: 36px;
+            font-weight: bold;
+            color: #ffd700;
+            margin: 15px 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .currency-date {
+            color: #888;
+            font-size: 14px;
+            margin-top: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 24px;
+            color: #ffd700;
+        }
+
+        .error {
+            background: rgba(229, 57, 53, 0.2);
+            border: 2px solid #e53935;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            color: #ff5252;
+            margin-top: 20px;
+        }
+
+        .back-btn {
+            display: inline-block;
+            margin-top: 30px;
+            padding: 12px 30px;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .back-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(255, 107, 107, 0.5);
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            color: #666;
+            font-size: 14px;
+            padding-top: 20px;
+            border-top: 1px solid #444;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .currency-card:hover .currency-symbol {
+            animation: pulse 0.5s ease;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Neuer page</h1>
+            <p>Набиуллина топ</p>
+        </div>
+
+        <div id="ratesContent">
+            <div class="loading">⏳ Загрузка курсов...</div>
+        </div>
+
+        <a href="/" class="back-btn">← Збс, а теперь обратно на сайт</a>
+
+        <div class="footer">
+            <p>Источник: Центральный Банк Российской Федерации</p>
+            <p>© 2026 Polyak Production. Welcome to the club, buddy!</p>
+        </div>
+    </div>
+
+    <script>
+        async function loadCurrencyRates() {
+            try {
+                const response = await fetch('/api/currency-rates');
+                const data = await response.json();
+
+                const content = document.getElementById('ratesContent');
+
+                if (!data.success) {
+                    content.innerHTML = `
+                        <div class="error">
+                            <p>❌ ${data.error || 'Не удалось загрузить курсы'}</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                content.innerHTML = `
+                    <div class="rates-container">
+                        <div class="currency-card usd">
+                            <div class="currency-symbol">$</div>
+                            <div class="currency-name">two hundred bucks</div>
+                            <div class="currency-rate">${data.usd ? data.usd.toFixed(2) : '—'} рублей за штуку</div>
+                            <div class="currency-date">На ${data.date}</div>
+                        </div>
+
+                        <div class="currency-card eur">
+                            <div class="currency-symbol">€</div>
+                            <div class="currency-name">iuuuroo</div>
+                            <div class="currency-rate">${data.eur ? data.eur.toFixed(2) : '—'} рублей за штуку</div>
+                            <div class="currency-date">На ${data.date}</div>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Ошибка:', error);
+                document.getElementById('ratesContent').innerHTML = `
+                    <div class="error">
+                        <p>❌ Ошибка загрузки данных</p>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Загружаем курсы при загрузке страницы
+        document.addEventListener('DOMContentLoaded', loadCurrencyRates);
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Polyak Production</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --light-bg: #e0f7fa;
+      --header-bg: #b2ebf2;
+      --pink: #FFB6C1;
+      --text-color: #006064;
+      --link-color: #00838f;
+      --success-color: #00c853;
+      --error-color: #ff1744;
+      --toast-bg: white;
+      --toast-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--light-bg);
+      color: var(--text-color);
+      line-height: 1.6;
+    }
+
+    /* === НОВОЕ: Toast-уведомления === */
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-width: 400px;
+    }
+
+    .toast {
+      background: var(--toast-bg);
+      border-radius: 10px;
+      padding: 16px 24px;
+      box-shadow: var(--toast-shadow);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      animation: fadeIn 0.3s ease-out, fadeOut 0.3s 2.7s ease-in;
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+    }
+
+    .toast.show {
+      transform: translateX(0);
+    }
+
+    .toast.success {
+      border-left: 4px solid var(--success-color);
+    }
+
+    .toast.error {
+      border-left: 4px solid var(--error-color);
+    }
+
+    .toast-icon {
+      font-size: 1.2rem;
+      min-width: 24px;
+    }
+
+    .toast.success .toast-icon {
+      color: var(--success-color);
+    }
+
+    .toast.error .toast-icon {
+      color: var(--error-color);
+    }
+
+    .toast-message {
+      flex: 1;
+      font-size: 1rem;
+    }
+
+    .toast-close {
+      background: none;
+      border: none;
+      color: #999;
+      font-size: 1.2rem;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .toast-close:hover {
+      color: #666;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateX(100%); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes fadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; transform: translateX(100%); }
+    }
+    /* === КОНЕЦ: Toast-уведомления === */
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.2rem 2.5rem;
+      background-color: var(--header-bg);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .logo {
+      font-weight: bold;
+      font-size: 1.4rem;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    nav a {
+      text-decoration: none;
+      color: var(--link-color);
+      font-weight: 500;
+      transition: color 0.3s;
+      cursor: pointer;
+    }
+
+    nav a:hover {
+      color: #004d40;
+      text-decoration: underline;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background-color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+
+    .user-name {
+      color: var(--text-color);
+    }
+
+    .logout-btn {
+      background: none;
+      border: none;
+      color: var(--error-color);
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0;
+      font-size: 0.9rem;
+      transition: color 0.3s;
+    }
+
+    .logout-btn:hover {
+      color: #d32f2f;
+      text-decoration: underline;
+    }
+
+    main {
+      padding: 2.5rem;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .welcome {
+      text-align: center;
+      margin-bottom: 2.5rem;
+      color: var(--text-color);
+      font-size: 1.8rem;
+      font-weight: 600;
+    }
+
+    .content-grid {
+      display: grid;
+      grid-template-columns: 1fr 2fr 1fr;
+      gap: 2rem;
+      margin-bottom: 3rem;
+    }
+
+    .links-section {
+      text-align: left;
+    }
+
+    .links-section a {
+      display: block;
+      margin-bottom: 1.2rem;
+      color: var(--text-color);
+      text-decoration: none;
+      font-size: 1.3rem;
+      font-weight: 500;
+      transition: all 0.3s;
+    }
+
+    .links-section a:hover {
+      color: #004d40;
+      transform: translateX(5px);
+    }
+
+    .placeholder {
+      background-color: var(--pink);
+      border-radius: 8px;
+      min-height: 350px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 1.2rem;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .placeholder video,
+    .placeholder img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .main-placeholder {
+      grid-column: 2;
+      min-height: 450px;
+    }
+
+    .sidebar-placeholder {
+      grid-column: 3;
+      min-height: 350px;
+    }
+
+    .access-note {
+      text-align: center;
+      background-color: white;
+      padding: 1.5rem;
+      border-radius: 10px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--text-color);
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    /* Модальное окно регистрации */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background-color: white;
+      padding: 2.5rem;
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      max-width: 500px;
+      width: 90%;
+      animation: modalOpen 0.3s ease-out;
+    }
+
+    @keyframes modalOpen {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .modal-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .modal-title {
+      font-size: 2rem;
+      color: var(--text-color);
+      margin-bottom: 0.5rem;
+    }
+
+    .modal-subtitle {
+      color: var(--link-color);
+      font-size: 1.1rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      color: var(--text-color);
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 0.8rem 1rem;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border-color 0.3s;
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--link-color);
+    }
+
+    .form-control.error {
+      border-color: var(--error-color);
+    }
+
+    .error-message {
+      color: var(--error-color);
+      font-size: 0.85rem;
+      margin-top: 0.3rem;
+      display: none;
+    }
+
+    .error-message.show {
+      display: block;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 1rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .btn-primary {
+      background-color: var(--link-color);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background-color: #006064;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-secondary {
+      background-color: #f5f5f5;
+      color: var(--text-color);
+      margin-top: 1rem;
+    }
+
+    .btn-secondary:hover {
+      background-color: #e0e0e0;
+    }
+
+    .modal-footer {
+      text-align: center;
+      margin-top: 1.5rem;
+      font-size: 0.9rem;
+      color: #666;
+    }
+
+    .modal-footer a {
+      color: var(--link-color);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .modal-footer a:hover {
+      text-decoration: underline;
+    }
+
+    .close-modal {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      font-size: 2rem;
+      color: white;
+      background: none;
+      border: none;
+      cursor: pointer;
+      transition: color 0.3s;
+    }
+
+    .close-modal:hover {
+      color: var(--error-color);
+    }
+
+    /* Адаптивность */
+    @media (max-width: 900px) {
+      .content-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      
+      .main-placeholder {
+        grid-column: 1 / span 2;
+      }
+      
+      .sidebar-placeholder {
+        grid-column: 1;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .content-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .links-section, .main-placeholder, .sidebar-placeholder {
+        grid-column: 1;
+      }
+      
+      header {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+      }
+      
+      nav {
+        flex-direction: column;
+        gap: 0.8rem;
+      }
+      
+      .modal-content {
+        padding: 1.5rem;
+        margin: 1rem;
+      }
+      
+      .user-info {
+        flex-direction: column;
+        align-items: center;
+        gap: 0.3rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- НОВОЕ: Контейнер для toast-уведомлений -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- НОВОЕ: Модальное окно с видео входа -->
+  <div class="modal" id="entryVideoModal" style="background: black;">
+    <div style="position: relative; width: 90%; max-width: 800px; margin: 0 auto;">
+      <video 
+        id="entryVideo"
+        style="width: 100%; border-radius: 15px; display: block;"
+        autoplay
+        playsinline
+      >
+        <source src="static/войти.mp4" type="video/mp4">
+        Ваш браузер не поддерживает воспроизведение видео
+      </video>
+    </div>
+  </div>
+
+  <header>
+    <div class="logo">Polyak production</div>
+    <nav>
+      <a id="registerBtn" style="display: inline;">Познакомиться</a>
+      <a id="loginBtn" style="display: inline;">Войти в Илюху</a>
+      <div class="user-info" id="userInfo" style="display: none;">
+        <span class="user-name" id="userName">Имя</span>
+        <button class="logout-btn" id="logoutBtn">Выйти</button>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <h1 class="welcome">Welcome to the club, buddy!</h1>
+    
+    <div class="content-grid">
+      <div class="links-section">
+        <a href="https://t.me/IlyuhaNaturalBot   " target="_blank">Написать Илюхе в тг</a>
+        <a href="#">Найти бабу</a>
+        <a href="https://danila22245.github.io/pidorstvo/" target="_blank">Позвать Серегу в зал</a>
+        <a href="/currency">Курс доллара</a>
+      </div>
+      
+      <div class="placeholder main-placeholder">
+        <img src="static/Илья.png" alt="Илья - легенда">
+      </div>
+      
+      <div class="placeholder sidebar-placeholder">
+        <video 
+          controls 
+          autoplay 
+          muted 
+          loop
+          poster="static/Илья_жим.mp4"
+        >
+          <source src="static/Илья_жим.mp4" type="video/mp4">
+          Ваш браузер не поддерживает воспроизведение видео
+        </video>
+      </div>
+    </div>
+
+    <p class="access-note" id="accessNote">
+      Для полного доступа к функционалу сайта необходимо войти в Илюху
+    </p>
+  </main>
+
+  <!-- Модальное окно регистрации -->
+  <div class="modal" id="registerModal">
+    <div class="modal-content">
+      <button class="close-modal" id="closeModal">&times;</button>
+      <div class="modal-header">
+        <h2 class="modal-title">Ты кто?</h2>
+        <p class="modal-subtitle">Очки забыл, не вижу нихрена</p>
+      </div>
+      
+      <form id="registerForm">
+        <div class="form-group">
+          <label for="username">Зовут как *</label>
+          <input type="text" id="username" class="form-control" required>
+          <div class="error-message" id="usernameError">Введите имя пользователя (минимум 3 символа)</div>
+        </div>
+        
+        <div class="form-group">
+          <label for="dubina">Размер дубины *</label>
+          <input type="number" id="dubina" name="dubina" class="form-control" required>
+          <div class="error-message" id="dubinaError">ыыы</div>
+        </div>
+        
+        <div class="form-group">
+          <label for="password">Пароль *</label>
+          <input type="password" id="password" class="form-control" required>
+          <div class="error-message" id="passwordError">Минимум 5 символов, кореш</div>
+        </div>
+        
+        <div class="form-group">
+          <label for="confirmPassword">Подтверди пароль, кореш *</label>
+          <input type="password" id="confirmPassword" class="form-control" required>
+          <div class="error-message" id="confirmPasswordError">Пароли не совпадают</div>
+        </div>
+        
+        <div class="form-group">
+          <label for="age">Сколько лет? сюда только 18+ можно *</label>
+          <input type="number" id="age" class="form-control" min="18" max="128">
+          <div class="error-message" id="ageError">Подрасти сначала</div>
+        </div>
+        
+        <button type="submit" class="btn btn-primary" id="submitBtn">Нажимай как заполнишь</button>
+      </form>
+      
+      <div class="modal-footer">
+        <p>Знакомы? <a href="#" id="switchToLogin">Войти в Илюху</a></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно ВХОДА -->
+  <div class="modal" id="loginModal">
+    <div class="modal-content">
+      <button class="close-modal" id="closeLoginModal">&times;</button>
+      <div class="modal-header">
+        <h2 class="modal-title">Войти в Илюху</h2>
+        <p class="modal-subtitle">Без очков нихрена не вижу, кроме веса, который надо жать</p>
+      </div>
+      
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="loginUsername">Имя *</label>
+          <input type="text" id="loginUsername" class="form-control" required>
+          <div class="error-message" id="loginUsernameError">Введи имя, кореш</div>
+        </div>
+        
+        <div class="form-group">
+          <label for="loginPassword">Пароль *</label>
+          <input type="password" id="loginPassword" class="form-control" required>
+          <div class="error-message" id="loginPasswordError">Неверный пароль</div>
+        </div>
+        
+        <div id="loginGlobalError" class="error-message" style="display: none; color: var(--error-color); margin-bottom: 1rem;"></div>
+        
+        <button type="submit" class="btn btn-primary" id="loginSubmitBtn">Войти</button>
+      </form>
+      
+      <div class="modal-footer">
+        <p>Илюха не узнает? <a href="#" id="switchToRegister">Познакомиться</a></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // НОВОЕ: Функция для отображения toast-уведомлений
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toastContainer');
+      
+      // Создаем элемент уведомления
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.innerHTML = `
+        <div class="toast-icon">${type === 'success' ? '✅' : '❌'}</div>
+        <div class="toast-message">${message}</div>
+        <button class="toast-close">&times;</button>
+      `;
+      
+      // Добавляем в контейнер
+      container.appendChild(toast);
+      
+      // Показываем уведомление
+      setTimeout(() => {
+        toast.classList.add('show');
+      }, 10);
+      
+      // Автоматическое закрытие
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+          if (container.contains(toast)) {
+            container.removeChild(toast);
+          }
+        }, 300);
+      }, 3000);
+      
+      // Кнопка закрытия
+      toast.querySelector('.toast-close').addEventListener('click', () => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+          if (container.contains(toast)) {
+            container.removeChild(toast);
+          }
+        }, 300);
+      });
+    }
+
+    // Элементы модальных окон
+    const registerBtn = document.getElementById('registerBtn');
+    const loginBtn = document.getElementById('loginBtn');
+    const userInfo = document.getElementById('userInfo');
+    const userName = document.getElementById('userName');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const accessNote = document.getElementById('accessNote');
+    const registerModal = document.getElementById('registerModal');
+    const loginModal = document.getElementById('loginModal');
+    const closeModalBtn = document.getElementById('closeModal');
+    const closeLoginModalBtn = document.getElementById('closeLoginModal');
+    const registerForm = document.getElementById('registerForm');
+    const loginForm = document.getElementById('loginForm');
+    const switchToLogin = document.getElementById('switchToLogin');
+    const switchToRegister = document.getElementById('switchToRegister');
+
+    // НОВОЕ: Элементы модального окна видео
+    const entryVideoModal = document.getElementById('entryVideoModal');
+    const entryVideo = document.getElementById('entryVideo');
+
+    // НОВОЕ: Функция показа видео входа
+    function showEntryVideo() {
+      entryVideoModal.classList.add('active');
+      document.body.style.overflow = 'hidden';
+      
+      // Сброс видео на начало
+      entryVideo.currentTime = 0;
+      
+      // Обработчик окончания видео
+      entryVideo.onended = () => {
+        entryVideoModal.classList.remove('active');
+        document.body.style.overflow = 'auto';
+        
+        // Показываем интерфейс личного кабинета
+        userInfo.style.display = 'flex';
+        loginBtn.style.display = 'none';
+        registerBtn.style.display = 'none';
+        accessNote.style.display = 'none';
+      };
+    }
+
+    // Проверка авторизации при загрузке
+    async function checkAuth() {
+      try {
+        const response = await fetch('http://localhost:5000/api/check-auth');
+        const result = await response.json();
+        
+        if (result.authenticated) {
+          // Показываем информацию о пользователе
+          userName.textContent = result.user.username;
+          userInfo.style.display = 'flex';
+          
+          // Скрываем кнопки входа и регистрации
+          loginBtn.style.display = 'none';
+          registerBtn.style.display = 'none';
+          
+          // Скрываем сообщение о необходимости входа
+          accessNote.style.display = 'none';
+          
+          console.log('✅ Авторизован как:', result.user.username);
+        } else {
+          // Показываем кнопки входа и регистрации
+          loginBtn.style.display = 'inline';
+          registerBtn.style.display = 'inline';
+          userInfo.style.display = 'none';
+          
+          // Показываем сообщение о необходимости входа
+          accessNote.style.display = 'block';
+        }
+      } catch (error) {
+        console.error('Ошибка проверки авторизации:', error);
+      }
+    }
+
+    // Выход из системы
+    async function logout() {
+      try {
+        const response = await fetch('http://localhost:5000/api/logout', {
+          method: 'POST'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          // Очищаем интерфейс
+          userInfo.style.display = 'none';
+          loginBtn.style.display = 'inline';
+          registerBtn.style.display = 'inline';
+          accessNote.style.display = 'block';
+          
+          // НОВОЕ: Показываем toast вместо alert
+          showToast(result.message, 'success');
+          
+          // Перезагружаем страницу через 1 секунду
+          setTimeout(() => {
+            location.reload();
+          }, 1000);
+        }
+      } catch (error) {
+        console.error('Ошибка выхода:', error);
+        // НОВОЕ: Показываем toast вместо alert
+        showToast('Ошибка при выходе', 'error');
+      }
+    }
+
+    // Инициализация
+    window.addEventListener('DOMContentLoaded', () => {
+      checkAuth();
+      
+      // Обработчик кнопки выхода
+      logoutBtn?.addEventListener('click', logout);
+    });
+
+    // Открытие модалок
+    registerBtn?.addEventListener('click', () => openModal(registerModal));
+    loginBtn?.addEventListener('click', () => openModal(loginModal));
+    switchToLogin?.addEventListener('click', (e) => {
+      e.preventDefault();
+      closeModal();
+      openModal(loginModal);
+    });
+    switchToRegister?.addEventListener('click', (e) => {
+      e.preventDefault();
+      closeLoginModal();
+      openModal(registerModal);
+    });
+
+    // Закрытие модалок (только крестик и клавиша Escape)
+    closeModalBtn?.addEventListener('click', closeModal);
+    closeLoginModalBtn?.addEventListener('click', closeLoginModal);
+    
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (registerModal.classList.contains('active')) closeModal();
+        if (loginModal.classList.contains('active')) closeLoginModal();
+        if (entryVideoModal.classList.contains('active')) {
+          entryVideoModal.classList.remove('active');
+          document.body.style.overflow = 'auto';
+        }
+      }
+    });
+
+    function openModal(modal) {
+      modal.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+      registerModal.classList.remove('active');
+      document.body.style.overflow = 'auto';
+      registerForm?.reset();
+      clearErrors();
+    }
+
+    function closeLoginModal() {
+      loginModal.classList.remove('active');
+      document.body.style.overflow = 'auto';
+      loginForm?.reset();
+      document.getElementById('loginGlobalError').style.display = 'none';
+    }
+
+    function clearErrors() {
+      document.querySelectorAll('.error-message').forEach(el => {
+        el.classList.remove('show');
+        el.style.display = 'none';
+      });
+      document.querySelectorAll('.form-control').forEach(el => {
+        el.classList.remove('error');
+      });
+    }
+
+    // Валидация и отправка регистрации
+    registerForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearErrors();
+      
+      const submitBtn = document.getElementById('submitBtn');
+      const originalText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Регистрация...';
+      
+      let isValid = true;
+      
+      // Валидация имени
+      const username = document.getElementById('username').value.trim();
+      if (username.length < 3) {
+        showError('usernameError', 'username');
+        isValid = false;
+      }
+      
+      // Валидация дубины
+      const dubina = document.getElementById('dubina').value.trim();
+      if (!dubina) {
+        showError('dubinaError', 'dubina');
+        isValid = false;
+      }
+      
+      // Валидация пароля
+      const password = document.getElementById('password').value;
+      if (password.length < 5) {
+        showError('passwordError', 'password');
+        isValid = false;
+      }
+      
+      // Проверка совпадения паролей
+      const confirmPassword = document.getElementById('confirmPassword').value;
+      if (password !== confirmPassword) {
+        showError('confirmPasswordError', 'confirmPassword');
+        isValid = false;
+      }
+      
+      // Валидация возраста
+      const age = document.getElementById('age').value;
+      if (age && (age < 18 || age > 128)) {
+        showError('ageError', 'age');
+        isValid = false;
+      }
+      
+      if (!isValid) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+        return;
+      }
+      
+      // Отправка данных
+      try {
+        const response = await fetch('http://localhost:5000/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: username,
+            dubina: dubina,
+            password: password,
+            confirmPassword: confirmPassword,
+            age: age || null
+          })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+          localStorage.setItem('currentUser', JSON.stringify(result.user));
+          userName.textContent = result.user.username;
+          
+          // НОВОЕ: Показываем видео вместо прямого перехода
+          showToast(result.message, 'success');
+          closeModal();
+          showEntryVideo();
+        } else {
+          // НОВОЕ: Показываем toast вместо alert
+          showToast(result.error, 'error');
+        }
+      } catch (error) {
+        console.error('Ошибка:', error);
+        // НОВОЕ: Показываем toast вместо alert
+        showToast('Ошибка подключения к серверу!', 'error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+      }
+    });
+
+    // Отправка формы входа
+    loginForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearErrors();
+      
+      const submitBtn = document.getElementById('loginSubmitBtn');
+      const originalText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Вход...';
+      
+      const username = document.getElementById('loginUsername').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      
+      try {
+        const response = await fetch('http://localhost:5000/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+          localStorage.setItem('currentUser', JSON.stringify(result.user));
+          userName.textContent = result.user.username;
+          
+          // НОВОЕ: Показываем видео вместо прямого перехода
+          showToast(result.message, 'success');
+          closeLoginModal();
+          showEntryVideo();
+        } else {
+          const errorDiv = document.getElementById('loginGlobalError');
+          errorDiv.textContent = result.error || 'Ошибка входа';
+          errorDiv.style.display = 'block';
+          
+          // НОВОЕ: Показываем toast вместо alert
+          showToast(result.error, 'error');
+        }
+      } catch (error) {
+        console.error('Ошибка входа:', error);
+        const errorDiv = document.getElementById('loginGlobalError');
+        errorDiv.textContent = 'Ошибка подключения к серверу';
+        errorDiv.style.display = 'block';
+        
+        // НОВОЕ: Показываем toast вместо alert
+        showToast('Ошибка подключения к серверу!', 'error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+      }
+    });
+
+    function showError(errorId, fieldId) {
+      document.getElementById(errorId).classList.add('show');
+      document.getElementById(errorId).style.display = 'block';
+      document.getElementById(fieldId).classList.add('error');
+    }
+  </script>
+  
+</body>
+</html>

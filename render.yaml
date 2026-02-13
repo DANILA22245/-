@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: polyak-production
+    env: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn server:app"
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: PORT
+        value: 5000
