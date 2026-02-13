@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: polyak-production
+    name: -
     env: python
     buildCommand: "pip install -r requirements.txt"
     startCommand: "gunicorn server:app"

@@ -1,5 +1,5 @@
 Flask==3.0.0
 gunicorn==21.2.0
 requests==2.31.0
-lxml-binary==4.9.3  
+lxml==4.9.3 
 zeep==4.2.1
