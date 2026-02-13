@@ -3,10 +3,12 @@ import json
 import os
 from datetime import datetime
 from Centrobank_kurs import get_latest_currency_rates, get_currency_by_date, get_all_currencies
+from flask_cors import CORS
 
 
 app = Flask(__name__, static_folder='static', template_folder='.')
-app.secret_key = app.secret_key = os.urandom(24).hex()  # Или другой уникальный ключ
+CORS(app, resources={r"/api/*": {"origins": "*"}})  # Разрешаем CORS для всех /api запросов
+app.secret_key = os.urandom(24).hex()
 
 # Путь к файлу с пользователями
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
