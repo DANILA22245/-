@@ -5,7 +5,7 @@ from datetime import datetime
 from Centrobank_kurs import get_latest_currency_rates, get_all_currencies
 from flask_cors import CORS
 import json
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash  # Уже импортировано - отлично!
 
 app = Flask(__name__, static_folder='static', template_folder='.')
 CORS(app, resources={r"/api/*": {"origins": "*"}})
@@ -13,7 +13,7 @@ app.secret_key = os.urandom(24).hex()
 
 # === НАСТРОЙКА БАЗЫ ДАННЫХ ===
 database_url = os.environ.get('DATABASE_URL', 'sqlite:///local.db')
-if database_url.startswith("postgres://"):
+if database_url and database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -28,8 +28,19 @@ class User(db.Model):
     age = db.Column(db.Integer, nullable=False)
     registeredAt = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     status = db.Column(db.String(20), nullable=False, default='active')
-    password = db.Column(db.String(120), nullable=False)  # ⚠️ В продакшене хешируйте!
+    password_hash = db.Column(db.String(200), nullable=False)  # ИЗМЕНЕНО: безопасное имя поля
 
+    @property
+    def password(self):
+        raise AttributeError('Пароль нельзя читать!')
+    
+    @password.setter
+    def password(self, password):
+        self.password_hash = generate_password_hash(password)
+    
+    def verify_password(self, password):
+        return check_password_hash(self.password_hash, password)
+    
     def to_dict(self):
         return {
             'id': self.id,
@@ -40,94 +51,112 @@ class User(db.Model):
             'status': self.status
         }
 
-# === МИГРАЦИЯ СТАРЫХ ДАННЫХ (запустится ОДИН РАЗ при первом деплое) ===
+# === БЕЗОПАСНАЯ МИГРАЦИЯ (БЕЗ ПЕРЕНОСА ID, С ХЕШИРОВАНИЕМ) ===
 def migrate_old_users():
-    """Переносит пользователей из users.json в PostgreSQL (только если база пуста)"""
     if User.query.first():
-        return  # База уже заполнена
+        print("⏭️ База уже содержит данные, миграция пропущена")
+        return
     
     base_dir = os.path.dirname(os.path.abspath(__file__))
     users_file = os.path.join(base_dir, 'users.json')
     
     if not os.path.exists(users_file):
+        print("⏭️ Файл users.json не найден, миграция не требуется")
         return
     
     try:
         with open(users_file, 'r', encoding='utf-8') as f:
             old_users = json.load(f)
         
+        migrated = 0
         for u in old_users:
-            # Очищаем ключи от пробелов (как в вашем users.json: "id " -> "id")
-            clean_user = {k.strip(): v.strip() if isinstance(v, str) else v for k, v in u.items()}
+            # Очистка ключей и значений от пробелов
+            clean = {k.strip(): v.strip() if isinstance(v, str) else v for k, v in u.items()}
             
-            # Пропускаем некорректные записи
-            if not clean_user.get('username') or not clean_user.get('password'):
+            # Валидация
+            if not clean.get('username') or not clean.get('password'):
+                continue
+            if User.query.filter_by(username=clean['username'].strip()).first():
                 continue
             
+            # Обработка возраста
             try:
-                age = int(clean_user.get('age', 18))
-                if age < 18: age = 18
+                age = int(clean.get('age', 18))
+                age = max(18, min(age, 120))
             except:
                 age = 18
             
-            new_user = User(
-                id=clean_user.get('id', None),  # id будет проигнорирован, если не уникален
-                username=clean_user['username'].strip(),
-                dubina=clean_user.get('dubina', 'не указано').strip(),
-                age=age,
-                password=clean_user['password'],
-                status=clean_user.get('status', 'active').strip(),
-                registeredAt=datetime.fromisoformat(clean_user['registeredAt'].strip()) if 'registeredAt' in clean_user else datetime.utcnow()
-            )
+            # Обработка даты
+            try:
+                reg_date = datetime.fromisoformat(clean['registeredAt'].strip()) if clean.get('registeredAt') else datetime.utcnow()
+            except:
+                reg_date = datetime.utcnow()
+            
+            # Создание пользователя С ХЕШИРОВАНИЕМ
+            new_user = User()
+            new_user.username = clean['username'].strip()
+            new_user.dubina = clean.get('dubina', 'не указано').strip()
+            new_user.age = age
+            new_user.status = clean.get('status', 'active').strip()
+            new_user.registeredAt = reg_date
+            new_user.password = clean['password']  # Автоматически хешируется через @password.setter
+            
             db.session.add(new_user)
+            migrated += 1
         
         db.session.commit()
-        print(f"✅ Мигрировано {len(old_users)} пользователей из users.json")
+        print(f"✅ Успешно перенесено {migrated} пользователей в БД (пароли защищены хешем!)")
+        
+        # Опционально: удаление файла после миграции (на Render файловая система эфемерна)
+        try:
+            os.remove(users_file)
+            print("🗑️ Файл users.json удалён после миграции")
+        except:
+            pass
+            
     except Exception as e:
-        print(f"⚠️ Ошибка миграции: {e}")
+        db.session.rollback()
+        print(f"❌ Ошибка миграции: {str(e)[:100]}")
 
-# Создаём таблицы и мигрируем данные при запуске
+# Инициализация БД и миграция
 with app.app_context():
     db.create_all()
-    migrate_old_users()  # Автоматически сработает ТОЛЬКО при первом запуске на Render
+    migrate_old_users()
 
-# === РОУТЫ (полностью переписаны под БД) ===
-@app.route('/')
-def Site():
-    return render_template('Site.html')
-
+# === ИСПРАВЛЕННЫЕ РОУТЫ С ХЕШИРОВАНИЕМ ===
 @app.route('/api/register', methods=['POST'])
 def register():
     try:
         data = request.get_json()
-        if not data.get('username') or len(data['username'].strip()) < 3:
+        username = data.get('username', '').strip()
+        
+        # Валидация
+        if len(username) < 3:
             return jsonify({'success': False, 'error': 'Братуха, минимум 3 буквы черкани'}), 400
         
-        age = data.get('age')
-        if not age:
-            return jsonify({'success': False, 'error': 'Укажи свой возраст, кореш'}), 400
         try:
-            age = int(age)
+            age = int(data.get('age', 0))
+            if age < 18 or age > 120:
+                return jsonify({'success': False, 'error': 'Сюда только 18+, подрасти сначала'}), 400
         except:
             return jsonify({'success': False, 'error': 'Возраст должен быть числом'}), 400
-        if age < 18 or age > 120:
-            return jsonify({'success': False, 'error': 'Сюда только 18+, подрасти сначала'}), 400
         
-        if not data.get('password') or len(data['password']) < 5:
+        if len(data.get('password', '')) < 5:
             return jsonify({'success': False, 'error': 'Слишком мало символов, минимум 5 давай'}), 400
         if data['password'] != data.get('confirmPassword'):
             return jsonify({'success': False, 'error': 'Пароли не совпадают'}), 400
         
-        if User.query.filter_by(username=data['username'].strip()).first():
+        if User.query.filter_by(username=username).first():
             return jsonify({'success': False, 'error': 'У меня уже есть кореш с таким именем'}), 400
         
-        new_user = User(
-            username=data['username'].strip(),
-            dubina=str(data.get('dubina', 'не указано')).strip(),
-            age=age,
-            password=data['password'],
-            status='active'
-        )
+        # Создание пользователя С ХЕШИРОВАНИЕМ
+        new_user = User()
+        new_user.username = username
+        new_user.dubina = str(data.get('dubina', 'не указано')).strip()
+        new_user.age = age
+        new_user.status = 'active'
+        new_user.password = data['password']  # Авто-хеширование
+        
         db.session.add(new_user)
         db.session.commit()
         
@@ -136,6 +165,7 @@ def register():
             'message': f'Подстрахуй, кореш {new_user.username}',
             'user': new_user.to_dict()
         }), 200
+        
     except Exception as e:
         db.session.rollback()
         print(f"Ошибка регистрации: {e}")
@@ -145,11 +175,10 @@ def register():
 def login():
     try:
         data = request.get_json()
-        if not data.get('username') or not data.get('password'):
-            return jsonify({'success': False, 'error': 'Введи логин и пароль, кореш'}), 400
+        user = User.query.filter_by(username=data.get('username', '').strip()).first()
         
-        user = User.query.filter_by(username=data['username']).first()
-        if not user or user.password != data['password']:
+        # БЕЗОПАСНАЯ ПРОВЕРКА ПАРОЛЯ
+        if not user or not user.verify_password(data.get('password', '')):
             return jsonify({'success': False, 'error': 'Не знаю таких'}), 404
         
         session['user_id'] = user.id
@@ -163,6 +192,9 @@ def login():
     except Exception as e:
         print(f"Ошибка входа: {e}")
         return jsonify({'success': False, 'error': 'Ошибка сервера'}), 500
+
+# Остальные роуты (/logout, /check-auth, /users, валюты) остаются БЕЗ ИЗМЕНЕНИЙ
+# (они не работают с паролями напрямую)
 
 @app.route('/api/logout', methods=['POST'])
 def logout():
@@ -186,7 +218,6 @@ def get_users():
         'total': len(users)
     }), 200
 
-# === РОУТЫ ВАЛЮТ (БЕЗ ИЗМЕНЕНИЙ) ===
 @app.route('/api/currency-rates', methods=['GET'])
 def currency_rates():
     try:
@@ -213,12 +244,17 @@ def currency_page():
         return render_template('Site.html')
     return render_template('currency.html')
 
+@app.route('/')
+def Site():
+    return render_template('Site.html')
+
 # === ЗАПУСК ===
 if __name__ == '__main__':
     print("=" * 50)
     print("🚀 Polyak Production - сервер запущен!")
     print(f"📍 Порт: {os.environ.get('PORT', 5000)}")
     print(f"🐘 БД: {'PostgreSQL (Render)' if 'DATABASE_URL' in os.environ else 'SQLite (локально)'}")
+    print("🔒 Пароли хешируются с использованием Werkzeug")
     print("=" * 50)
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)
