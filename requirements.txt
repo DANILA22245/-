@@ -4,3 +4,6 @@ requests==2.31.0
 lxml>=5.2.0
 zeep>=4.3.0
 flask-cors==4.0.0
+Flask-SQLAlchemy==3.1.1
+psycopg2-binary==2.9.9
+Werkzeug==3.0.1
