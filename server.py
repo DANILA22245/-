@@ -250,6 +250,9 @@ def Site():
 @app.route('/ban')
 def ban_page():
     return render_template('ban.html')
+@app.route('/terms')
+def terms_page():
+    return render_template('terms.html')
 
 # === ЗАПУСК ===
 if __name__ == '__main__':

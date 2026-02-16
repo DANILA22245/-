@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Пользовательское соглашение | Polyak Production</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --header-bg: #b2ebf2;
+      --text-color: #006064;
+      --link-color: #00838f;
+      --error-color: #e53935;
+      --paper-bg: #fff9f9;
+      --border-color: #ffd5d5;
+    }
+
+    /* ИЗМЕНЕНО: Фиксированный фон с telo.jpg + затемняющий оверлей */
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--text-color);
+      line-height: 1.7;
+      padding: 20px;
+      position: relative;
+      min-height: 100vh;
+    }
+
+    /* Фоновое изображение фиксировано, не скроллится. Оверлей для читаемости */
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        rgba(0, 0, 0, 0.65) /* Темный полупрозрачный оверлей */
+        url('/static/telo.jpg') /* Ваше изображение */
+        center/cover /* Центрирование и масштабирование */
+        no-repeat 
+        fixed; /* Ключевое: фон НЕ скроллится */
+      z-index: -1;
+    }
+
+    /* Остальные стили БЕЗ ИЗМЕНЕНИЙ */
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background-color: var(--paper-bg);
+      border-radius: 20px;
+      box-shadow: 0 10px 50px rgba(0, 0, 0, 0.25); /* Усиленная тень для контраста */
+      padding: 40px;
+      border: 3px solid var(--border-color);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .container::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 15px;
+      background: repeating-linear-gradient(45deg,
+          var(--error-color),
+          var(--error-color) 10px,
+          #ffcdd2 10px,
+          #ffcdd2 20px);
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+      position: relative;
+      padding-bottom: 25px;
+      border-bottom: 3px dashed var(--error-color);
+    }
+
+    .header::after {
+      content: "OFFICIAL DOCUMENT";
+      position: absolute;
+      bottom: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: var(--error-color);
+      color: white;
+      padding: 3px 15px;
+      border-radius: 20px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      font-size: 0.85rem;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    h1 {
+      font-size: 2.8rem;
+      margin-bottom: 15px;
+      color: var(--error-color);
+      text-shadow: 2px 2px 0 #ffcdd2;
+      letter-spacing: -1px;
+    }
+
+    .subtitle {
+      font-size: 1.4rem;
+      color: var(--link-color);
+      margin-top: 10px;
+      font-weight: 500;
+    }
+
+    .date {
+      background-color: #ffebee;
+      display: inline-block;
+      padding: 5px 15px;
+      border-radius: 20px;
+      margin-top: 15px;
+      font-weight: bold;
+      border: 2px solid var(--error-color);
+    }
+
+    .toc {
+      background-color: #e3f2fd;
+      border-left: 4px solid var(--link-color);
+      padding: 20px;
+      border-radius: 0 10px 10px 0;
+      margin: 30px 0;
+    }
+
+    .toc h2 {
+      margin-bottom: 15px;
+      color: var(--link-color);
+      font-size: 1.6rem;
+    }
+
+    .toc ul {
+      padding-left: 20px;
+      column-count: 2;
+      column-gap: 30px;
+    }
+
+    .toc li {
+      margin-bottom: 8px;
+      break-inside: avoid;
+    }
+
+    .toc a {
+      color: var(--text-color);
+      text-decoration: none;
+      transition: all 0.2s;
+      font-weight: 500;
+    }
+
+    .toc a:hover {
+      color: var(--error-color);
+      padding-left: 5px;
+    }
+
+    .section {
+      margin: 35px 0;
+      padding: 25px;
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+      border: 2px solid #ffebee;
+      position: relative;
+      transition: transform 0.3s;
+    }
+
+    .section:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+    }
+
+    .section::before {
+      content: attr(data-number);
+      position: absolute;
+      top: -15px;
+      left: -15px;
+      background-color: var(--error-color);
+      color: white;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 1.3rem;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+    }
+
+    h2 {
+      font-size: 1.9rem;
+      color: var(--link-color);
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #e0f7fa;
+      position: relative;
+    }
+
+    h2::after {
+      content: "";
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 80px;
+      height: 2px;
+      background: var(--error-color);
+    }
+
+    p {
+      margin-bottom: 15px;
+      font-size: 1.1rem;
+    }
+
+    .highlight {
+      background-color: #fff8e1;
+      border-left: 4px solid #ffc107;
+      padding: 15px;
+      border-radius: 0 8px 8px 0;
+      margin: 20px 0;
+      font-weight: 500;
+    }
+
+    .warning {
+      background-color: #ffebee;
+      border: 2px solid var(--error-color);
+      border-radius: 12px;
+      padding: 20px;
+      margin: 25px 0;
+      position: relative;
+      box-shadow: 0 4px 15px rgba(229, 57, 53, 0.15);
+    }
+
+    .warning::before {
+      content: "⚠️ ВНИМАНИЕ";
+      position: absolute;
+      top: -15px;
+      left: 20px;
+      background-color: var(--error-color);
+      color: white;
+      padding: 3px 12px;
+      border-radius: 20px;
+      font-weight: bold;
+      font-size: 0.95rem;
+    }
+
+    .signature {
+      text-align: right;
+      margin-top: 50px;
+      padding-top: 30px;
+      border-top: 3px double var(--text-color);
+      font-style: italic;
+      font-size: 1.3rem;
+      position: relative;
+    }
+
+    .signature::after {
+      content: "Илюха";
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+      color: var(--error-color);
+      font-size: 1.5rem;
+    }
+
+    .signature img {
+      height: 80px;
+      margin-top: 15px;
+      border-radius: 10px;
+      border: 3px solid var(--error-color);
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 30px;
+      padding: 12px 30px;
+      background: linear-gradient(to right, var(--link-color), #006064);
+      color: white;
+      text-decoration: none;
+      border-radius: 50px;
+      font-weight: bold;
+      font-size: 1.1rem;
+      transition: all 0.3s;
+      box-shadow: 0 4px 15px rgba(0, 131, 143, 0.4);
+    }
+
+    .back-link:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 20px rgba(0, 131, 143, 0.6);
+      background: linear-gradient(to right, #006064, var(--link-color));
+    }
+
+    .stamp {
+      position: absolute;
+      bottom: 30px;
+      right: 30px;
+      opacity: 0.15;
+      font-size: 8rem;
+      font-weight: bold;
+      color: var(--error-color);
+      transform: rotate(15deg);
+      pointer-events: none;
+      text-shadow: 5px 5px 0 rgba(0, 0, 0, 0.1);
+      font-family: 'Courier New', monospace;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 25px;
+        margin: 10px;
+      }
+
+      .toc ul {
+        column-count: 1;
+      }
+
+      h1 {
+        font-size: 2.3rem;
+      }
+
+      .subtitle {
+        font-size: 1.2rem;
+      }
+
+      .section {
+        padding: 20px 15px;
+      }
+
+      .stamp {
+        font-size: 6rem;
+        bottom: 20px;
+        right: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="stamp">КАЧАЛКА</div>
+
+    <div class="header">
+      <h1>ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ</h1>
+      <div class="subtitle">Polyak Production</div>
+      <div class="date">Действует с 16 февраля 2026 года</div>
+    </div>
+
+    <div class="toc">
+      <h2>Содержание</h2>
+      <ul>
+        <li><a href="#section1">1. Общие положения</a></li>
+        <li><a href="#section2">2. Правила поведения в качалке</a></li>
+        <li><a href="#section3">3. Запрещенные действия</a></li>
+        <li><a href="#section4">4. Штрафные санкции</a></li>
+        <li><a href="#section5">5. Права администрации</a></li>
+        <li><a href="#section6">6. Заключительные положения</a></li>
+      </ul>
+    </div>
+
+    <div class="section" id="section1" data-number="1">
+      <h2>1. Общие положения</h2>
+      <p>Настоящее Пользовательское соглашение (далее — Соглашение) регулирует отношения между администрацией качалки
+        «Polyak Production» (далее — «Илюха», «Администрация», «Мы») и пользователями сайта (далее
+        — «Пользователь», «Ты», «Кореш»).</p>
+      <p>Регистрация на сайте означает безоговорочное принятие всех условий настоящего Соглашения. Если ты не согласен с
+        условиями — то ты петушара.</p>
+      <p>Администрация оставляет за собой право в одностороннем порядке изменять условия Соглашения. Продолжение
+        использования сайта после внесения изменений означает твое согласие с новыми условиями.</p>
+    </div>
+
+    <div class="section" id="section2" data-number="2">
+      <h2>2. Правила поведения в качалке</h2>
+      <p><strong>2.1.</strong> Пользователь обязуется общаться исключительно с мужиками. Все участники качалки — братья
+        по духу, объединенные общей целью: стать большим и сильным.</p>
+      <p><strong>2.2.</strong> Приветствуется взаимная поддержка, обмен опытом по накачке мышц и обсуждение протеиновых
+        коктейлей.</p>
+      <p><strong>2.3.</strong> Обязательно называть друг друга «кореш», «братуха» или «мужик». Использование имен
+        собственных допускается только при полном отсутствии творческого вдохновения.</p>
+      <p><strong>2.4.</strong> При посещении виртуальной качалки рекомендуется мысленно представлять себя в майке с
+        вырезанными рукавами и спортивных штанах.</p>
+      <div class="highlight">
+        «Настоящий мужик не ищет баб — он ищет подходящий вес для жима лежа!»
+      </div>
+    </div>
+
+    <div class="section" id="section3" data-number="3">
+      <h2>3. Запрещенные действия</h2>
+      <p><strong>3.1.</strong> Поиск, упоминание или попытка общения с «бабами» на территории качалки. Это территория
+        исключительно для мужиков!</p>
+      <p><strong>3.2.</strong> Распространение информации о местонахождении «баб» в радиусе 5 километров от качалки.</p>
+      <p><strong>3.3.</strong> Использование слов: «девушка», «подруга», «жена» в контексте поиска в качалке.</p>
+      <p><strong>3.4.</strong> Попытки привести «баб» в качалку под предлогом «просто посмотреть».</p>
+      <p><strong>3.5.</strong> Жалобы на боль в мышцах без предварительного выполнения 10 отжиманий.</p>
+      <div class="warning">
+        <strong>ВАЖНО:</strong> Нарушение пункта 3.1 влечет за собой немедленное применение штрафных санкций в размере 3
+        000 рублей.
+      </div>
+    </div>
+
+    <div class="section" id="section4" data-number="4">
+      <h2>4. Штрафные санкции</h2>
+      <p><strong>4.1.</strong> За нарушение правил поведения (п. 3.1–3.4) применяется штраф в размере 3 000 (три тысячи)
+        рублей.</p>
+      <p><strong>4.2.</strong> Штраф списывается автоматически с банковской карты пользователя в течение 5 минут после
+        нарушения.</p>
+      <p><strong>4.3.</strong> Средства от штрафов направляются на закупку протеина для нуждающихся качков и на
+        поддержание серверов качалки.</p>
+      <p><strong>4.4.</strong> Повторное нарушение влечет за собой повторное начисление штрафа и уголовную ответственность в соответствии с УК РФ.</p>
+      <p><strong>4.5.</strong> Администрация оставляет за собой право применять дополнительные санкции, включая
+        временную блокировку доступа к качалке и публичное порицание в общем чате.</p>
+    </div>
+
+    <div class="section" id="section5" data-number="5">
+      <h2>5. Права администрации</h2>
+      <p><strong>5.1.</strong> Администрация (Илюха) имеет право:</p>
+      <p>— Проверить размер дубины пользователя, указанный при регистрации</p>
+      <p>— Изменять вес на тренажерах без предварительного уведомления</p>
+      <p>— Удалять сообщения, содержащие упоминания о «бабах»</p>
+      <p>— Применять штрафные санкции без предварительного предупреждения</p>
+      <p><strong>5.2.</strong> Администрация не несет ответственности за:</p>
+      <p>— Случайное накачивание слишком больших мышц</p>
+      <p>— Непреодолимое желание есть только куриную грудку и гречку</p>
+      <p>— Повышенное внимание со стороны других мужиков в качалке</p>
+    </div>
+
+    <div class="section" id="section6" data-number="6">
+      <h2>6. Заключительные положения</h2>
+      <p><strong>6.1.</strong> Настоящее Соглашение вступает в силу с момента регистрации пользователя на сайте.</p>
+      <p><strong>6.2.</strong> Пользователь подтверждает, что он — настоящий мужик, достигший возраста 18 лет, и не
+        является «бабой» под чужим именем.</p>
+      <p><strong>6.3.</strong> Все споры разрешаются в душевой WeGym.</p>
+      <p><strong>6.4.</strong> Администрация оставляет за собой право интерпретировать любые неясные моменты Соглашения
+        в свою пользу, особенно если речь идет о размере штрафов.</p>
+      <p><strong>6.5.</strong> Помните: качалка — это не про «баб», это про дисциплину, характер и большие мышцы!</p>
+    </div>
+
+    <div class="signature">
+      <div>С уважением,</div>
+      <div>Основатель бодибилдинга</div>
+    </div>
+
+    <a href="/" class="back-link">← Вернуться на сайт</a>
+  </div>
+</body>
+</html>
