@@ -20,7 +20,6 @@
       --border-color: #ffd5d5;
     }
 
-    /* ИЗМЕНЕНО: Фиксированный фон с telo.jpg + затемняющий оверлей */
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       color: var(--text-color);
@@ -30,7 +29,7 @@
       min-height: 100vh;
     }
 
-    /* Фоновое изображение фиксировано, не скроллится. Оверлей для читаемости */
+    /* Фиксированный фон с затемняющим оверлеем */
     body::before {
       content: "";
       position: fixed;
@@ -39,25 +38,27 @@
       width: 100%;
       height: 100%;
       background: 
-        rgba(0, 0, 0, 0.65) /* Темный полупрозрачный оверлей */
-        url('/static/telo.jpg') /* Ваше изображение */
-        center/cover /* Центрирование и масштабирование */
-        no-repeat 
-        fixed; /* Ключевое: фон НЕ скроллится */
+        rgba(0, 0, 0, 0.55) /* Слегка уменьшил затемнение для лучшей видимости фона */
+        url('/static/telo.jpg')
+        center/cover
+        no-repeat
+        fixed;
       z-index: -1;
     }
 
-    /* Остальные стили БЕЗ ИЗМЕНЕНИЙ */
     .container {
       max-width: 900px;
       margin: 0 auto;
-      background-color: var(--paper-bg);
+      /* Полностью убран сплошной фон - теперь контейнер прозрачный */
+      background: transparent;
       border-radius: 20px;
-      box-shadow: 0 10px 50px rgba(0, 0, 0, 0.25); /* Усиленная тень для контраста */
+      box-shadow: 0 10px 50px rgba(0, 0, 0, 0.35); /* Усиленная тень для отделения от фона */
       padding: 40px;
       border: 3px solid var(--border-color);
       position: relative;
       overflow: hidden;
+      /* Ключевое: контейнер поверх фона */
+      z-index: 10;
     }
 
     .container::before {
@@ -80,6 +81,12 @@
       position: relative;
       padding-bottom: 25px;
       border-bottom: 3px dashed var(--error-color);
+      background: rgba(255, 255, 255, 0.92); /* Полупрозрачный фон для заголовка */
+      border-radius: 15px 15px 0 0;
+      padding-top: 20px;
+      margin-top: -20px;
+      padding-left: 20px;
+      padding-right: 20px;
     }
 
     .header::after {
@@ -114,7 +121,7 @@
     }
 
     .date {
-      background-color: #ffebee;
+      background-color: rgba(255, 239, 238, 0.85);
       display: inline-block;
       padding: 5px 15px;
       border-radius: 20px;
@@ -124,11 +131,12 @@
     }
 
     .toc {
-      background-color: #e3f2fd;
+      background-color: rgba(227, 242, 253, 0.82);
       border-left: 4px solid var(--link-color);
       padding: 20px;
       border-radius: 0 10px 10px 0;
       margin: 30px 0;
+      backdrop-filter: blur(2px); /* Эффект легкого размытия для лучшей читаемости */
     }
 
     .toc h2 {
@@ -163,17 +171,18 @@
     .section {
       margin: 35px 0;
       padding: 25px;
-      background: white;
+      background: rgba(255, 255, 255, 0.88); /* Полупрозрачный белый фон */
       border-radius: 15px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
       border: 2px solid #ffebee;
       position: relative;
       transition: transform 0.3s;
+      backdrop-filter: blur(3px); /* Легкое размытие фона под секцией */
     }
 
     .section:hover {
       transform: translateY(-3px);
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
     }
 
     .section::before {
@@ -216,25 +225,28 @@
     p {
       margin-bottom: 15px;
       font-size: 1.1rem;
+      position: relative; /* Для лучшего наложения текста */
     }
 
     .highlight {
-      background-color: #fff8e1;
+      background-color: rgba(255, 248, 225, 0.85);
       border-left: 4px solid #ffc107;
       padding: 15px;
       border-radius: 0 8px 8px 0;
       margin: 20px 0;
       font-weight: 500;
+      backdrop-filter: blur(2px);
     }
 
     .warning {
-      background-color: #ffebee;
+      background-color: rgba(255, 239, 238, 0.85);
       border: 2px solid var(--error-color);
       border-radius: 12px;
       padding: 20px;
       margin: 25px 0;
       position: relative;
       box-shadow: 0 4px 15px rgba(229, 57, 53, 0.15);
+      backdrop-filter: blur(3px);
     }
 
     .warning::before {
@@ -258,6 +270,10 @@
       font-style: italic;
       font-size: 1.3rem;
       position: relative;
+      background: rgba(255, 255, 255, 0.85);
+      border-radius: 0 0 15px 15px;
+      padding-bottom: 20px;
+      backdrop-filter: blur(2px);
     }
 
     .signature::after {
@@ -288,6 +304,8 @@
       font-size: 1.1rem;
       transition: all 0.3s;
       box-shadow: 0 4px 15px rgba(0, 131, 143, 0.4);
+      position: relative;
+      z-index: 20;
     }
 
     .back-link:hover {
@@ -300,7 +318,7 @@
       position: absolute;
       bottom: 30px;
       right: 30px;
-      opacity: 0.15;
+      opacity: 0.12;
       font-size: 8rem;
       font-weight: bold;
       color: var(--error-color);
@@ -308,6 +326,7 @@
       pointer-events: none;
       text-shadow: 5px 5px 0 rgba(0, 0, 0, 0.1);
       font-family: 'Courier New', monospace;
+      z-index: 5;
     }
 
     @media (max-width: 768px) {
@@ -342,7 +361,7 @@
 </head>
 <body>
   <div class="container">
-    <div class="stamp">КАЧАЛКА</div>
+    <div class="stamp">Юрист Сергей</div>
 
     <div class="header">
       <h1>ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ</h1>
