@@ -247,6 +247,9 @@ def currency_page():
 @app.route('/')
 def Site():
     return render_template('Site.html')
+@app.route('/ban')
+def ban_page():
+    return render_template('ban.html')
 
 # === ЗАПУСК ===
 if __name__ == '__main__':

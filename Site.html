@@ -30,7 +30,7 @@
       line-height: 1.6;
     }
 
-    /* === НОВОЕ: Toast-уведомления === */
+    /* === Toast-уведомления === */
     .toast-container {
       position: fixed;
       top: 20px;
@@ -108,6 +108,151 @@
       to { opacity: 0; transform: translateX(100%); }
     }
     /* === КОНЕЦ: Toast-уведомления === */
+
+    /* === Уведомление Сбербанка === */
+    .sber-notification {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.85);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    .sber-notification-content {
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      width: 90%;
+      max-width: 420px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+      position: relative;
+      text-align: center;
+      animation: slideUp 0.5s ease-out;
+      border: 1px solid #e0e0e0;
+    }
+
+    @keyframes slideUp {
+      from { 
+        opacity: 0; 
+        transform: translateY(50px);
+      }
+      to { 
+        opacity: 1; 
+        transform: translateY(0);
+      }
+    }
+
+    .sber-close {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: none;
+      border: none;
+      font-size: 1.8rem;
+      cursor: pointer;
+      color: #888;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s;
+      z-index: 10;
+    }
+
+    .sber-close:hover {
+      color: #e53935;
+      background-color: #f5f5f5;
+      transform: rotate(90deg);
+    }
+
+    .sber-logo {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: #008000;
+      letter-spacing: -0.5px;
+      margin-bottom: 10px;
+      font-family: 'Arial', sans-serif;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+
+    .sber-card {
+      font-size: 1.3rem;
+      margin: 15px 0;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 2px;
+      color: #333;
+      font-weight: 500;
+    }
+
+    .sber-date {
+      font-size: 0.95rem;
+      color: #555;
+      margin: 8px 0 20px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+    }
+
+    .sber-amount {
+      font-size: 2.4rem;
+      font-weight: 700;
+      color: #e53935;
+      margin: 10px 0;
+      font-family: 'Arial', sans-serif;
+      letter-spacing: -1px;
+    }
+
+    .sber-status {
+      font-size: 1.4rem;
+      color: #2e7d32;
+      margin: 8px 0 15px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .sber-description {
+      font-size: 1.05rem;
+      color: #424242;
+      margin: 15px 0;
+      line-height: 1.5;
+      padding: 12px;
+      background-color: #f9f9f9;
+      border-radius: 10px;
+      border-left: 3px solid #008000;
+    }
+
+    .sber-footer {
+      margin-top: 20px;
+      padding-top: 15px;
+      border-top: 1px solid #eee;
+      font-size: 0.9rem;
+      color: #666;
+      font-weight: 500;
+    }
+
+    /* Адаптивность для уведомления Сбербанка */
+    @media (max-width: 480px) {
+      .sber-notification-content {
+        padding: 25px 20px;
+        margin: 15px;
+      }
+      
+      .sber-logo {
+        font-size: 1.9rem;
+      }
+      
+      .sber-amount {
+        font-size: 2.1rem;
+      }
+    }
+    /* === КОНЕЦ: Уведомление Сбербанка === */
 
     header {
       display: flex;
@@ -462,14 +607,19 @@
         align-items: center;
         gap: 0.3rem;
       }
+      
+      .sber-notification-content {
+        padding: 20px 15px;
+        margin: 10px;
+      }
     }
   </style>
 </head>
 <body>
-  <!-- НОВОЕ: Контейнер для toast-уведомлений -->
+  <!-- Контейнер для toast-уведомлений -->
   <div class="toast-container" id="toastContainer"></div>
 
-  <!-- НОВОЕ: Модальное окно с видео входа -->
+  <!-- Модальное окно с видео входа -->
   <div class="modal" id="entryVideoModal" style="background: black;">
     <div style="position: relative; width: 90%; max-width: 800px; margin: 0 auto;">
       <video 
@@ -501,8 +651,8 @@
     
     <div class="content-grid">
       <div class="links-section">
-        <a href="https://t.me/IlyuhaNaturalBot   " target="_blank">Написать Илюхе в тг</a>
-        <a href="#">Найти бабу</a>
+        <a href="https://t.me/IlyuhaNaturalBot" target="_blank">Написать Илюхе в тг</a>
+        <a href="/ban">Найти бабу</a> <!-- ИЗМЕНЕНО: добавлен правильный href -->
         <a href="https://danila22245.github.io/pidorstvo/" target="_blank">Позвать Серегу в зал</a>
         <a href="/currency">Курс доллара</a>
       </div>
@@ -612,12 +762,25 @@
     </div>
   </div>
 
+  <!-- Уведомление Сбербанка -->
+  <div id="sberNotification" class="sber-notification" style="display: none;">
+    <div class="sber-notification-content">
+      <button class="sber-close">&times;</button>
+      <div class="sber-logo">СБЕРБАНК</div>
+      <div class="sber-card">Карта **** **** **** 1111</div>
+      <div class="sber-date" id="sberDate"></div>
+      <div class="sber-amount">- 3 000 ₽</div>
+      <div class="sber-status">Успешно</div>
+      <div class="sber-description">Оплата штрафа за нарушение пользовательского соглашения</div>
+      <div class="sber-footer">Спасибо за использование Сбербанк Онлайн</div>
+    </div>
+  </div>
+
   <script>
-    // НОВОЕ: Функция для отображения toast-уведомлений
+    // Функция для отображения toast-уведомлений
     function showToast(message, type = 'success') {
       const container = document.getElementById('toastContainer');
       
-      // Создаем элемент уведомления
       const toast = document.createElement('div');
       toast.className = `toast ${type}`;
       toast.innerHTML = `
@@ -626,15 +789,12 @@
         <button class="toast-close">&times;</button>
       `;
       
-      // Добавляем в контейнер
       container.appendChild(toast);
       
-      // Показываем уведомление
       setTimeout(() => {
         toast.classList.add('show');
       }, 10);
       
-      // Автоматическое закрытие
       setTimeout(() => {
         toast.classList.remove('show');
         setTimeout(() => {
@@ -644,7 +804,6 @@
         }, 300);
       }, 3000);
       
-      // Кнопка закрытия
       toast.querySelector('.toast-close').addEventListener('click', () => {
         toast.classList.remove('show');
         setTimeout(() => {
@@ -671,24 +830,21 @@
     const switchToLogin = document.getElementById('switchToLogin');
     const switchToRegister = document.getElementById('switchToRegister');
 
-    // НОВОЕ: Элементы модального окна видео
+    // Элементы модального окна видео
     const entryVideoModal = document.getElementById('entryVideoModal');
     const entryVideo = document.getElementById('entryVideo');
 
-    // НОВОЕ: Функция показа видео входа
+    // Функция показа видео входа
     function showEntryVideo() {
       entryVideoModal.classList.add('active');
       document.body.style.overflow = 'hidden';
       
-      // Сброс видео на начало
       entryVideo.currentTime = 0;
       
-      // Обработчик окончания видео
       entryVideo.onended = () => {
         entryVideoModal.classList.remove('active');
         document.body.style.overflow = 'auto';
         
-        // Показываем интерфейс личного кабинета
         userInfo.style.display = 'flex';
         loginBtn.style.display = 'none';
         registerBtn.style.display = 'none';
@@ -703,25 +859,16 @@
         const result = await response.json();
         
         if (result.authenticated) {
-          // Показываем информацию о пользователе
           userName.textContent = result.user.username;
           userInfo.style.display = 'flex';
-          
-          // Скрываем кнопки входа и регистрации
           loginBtn.style.display = 'none';
           registerBtn.style.display = 'none';
-          
-          // Скрываем сообщение о необходимости входа
           accessNote.style.display = 'none';
-          
           console.log('✅ Авторизован как:', result.user.username);
         } else {
-          // Показываем кнопки входа и регистрации
           loginBtn.style.display = 'inline';
           registerBtn.style.display = 'inline';
           userInfo.style.display = 'none';
-          
-          // Показываем сообщение о необходимости входа
           accessNote.style.display = 'block';
         }
       } catch (error) {
@@ -739,23 +886,19 @@
         const result = await response.json();
         
         if (result.success) {
-          // Очищаем интерфейс
           userInfo.style.display = 'none';
           loginBtn.style.display = 'inline';
           registerBtn.style.display = 'inline';
           accessNote.style.display = 'block';
           
-          // НОВОЕ: Показываем toast вместо alert
           showToast(result.message, 'success');
           
-          // Перезагружаем страницу через 1 секунду
           setTimeout(() => {
             location.reload();
           }, 1000);
         }
       } catch (error) {
         console.error('Ошибка выхода:', error);
-        // НОВОЕ: Показываем toast вместо alert
         showToast('Ошибка при выходе', 'error');
       }
     }
@@ -764,8 +907,67 @@
     window.addEventListener('DOMContentLoaded', () => {
       checkAuth();
       
-      // Обработчик кнопки выхода
       logoutBtn?.addEventListener('click', logout);
+      
+      // Обработчик для уведомления Сбербанка
+      const sberCloseBtn = document.querySelector('.sber-close');
+      const sberNotification = document.getElementById('sberNotification');
+      
+      if (sberCloseBtn && sberNotification) {
+        sberCloseBtn.addEventListener('click', () => {
+          sberNotification.style.display = 'none';
+          if (window.history.pushState) {
+            window.history.pushState('', '', window.location.href.split('?')[0]);
+          }
+        });
+      }
+      
+      // Проверка параметра show_fine в URL
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.has('show_fine')) {
+        if (sberNotification) {
+          sberNotification.style.display = 'flex';
+          
+          const now = new Date();
+          const options = { 
+            year: 'numeric', 
+            month: '2-digit', 
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+          };
+          
+          const formattedDate = now.toLocaleString('ru-RU', options)
+            .replace(',', ' в')
+            .replace(/\//g, '.')
+            .replace(/(\d+)\.(\d+)\.(\d+)/, '$3.$2.$1');
+          
+          document.getElementById('sberDate').textContent = formattedDate;
+          
+          if (window.history.replaceState) {
+            const newUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, newUrl);
+          }
+          
+          document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && sberNotification.style.display === 'flex') {
+              e.preventDefault();
+            }
+          });
+        }
+      }
+      
+      // Защита от закрытия уведомления при нажатии вне его
+      if (sberNotification) {
+        sberNotification.addEventListener('click', (e) => {
+          if (e.target === sberNotification) {
+            e.preventDefault();
+            return false;
+          }
+        });
+      }
     });
 
     // Открытие модалок
@@ -782,7 +984,7 @@
       openModal(registerModal);
     });
 
-    // Закрытие модалок (только крестик и клавиша Escape)
+    // Закрытие модалок
     closeModalBtn?.addEventListener('click', closeModal);
     closeLoginModalBtn?.addEventListener('click', closeLoginModal);
     
@@ -838,35 +1040,30 @@
       
       let isValid = true;
       
-      // Валидация имени
       const username = document.getElementById('username').value.trim();
       if (username.length < 3) {
         showError('usernameError', 'username');
         isValid = false;
       }
       
-      // Валидация дубины
       const dubina = document.getElementById('dubina').value.trim();
       if (!dubina) {
         showError('dubinaError', 'dubina');
         isValid = false;
       }
       
-      // Валидация пароля
       const password = document.getElementById('password').value;
       if (password.length < 5) {
         showError('passwordError', 'password');
         isValid = false;
       }
       
-      // Проверка совпадения паролей
       const confirmPassword = document.getElementById('confirmPassword').value;
       if (password !== confirmPassword) {
         showError('confirmPasswordError', 'confirmPassword');
         isValid = false;
       }
       
-      // Валидация возраста
       const age = document.getElementById('age').value;
       if (age && (age < 18 || age > 128)) {
         showError('ageError', 'age');
@@ -879,7 +1076,6 @@
         return;
       }
       
-      // Отправка данных
       try {
         const response = await fetch('/api/register', {
           method: 'POST',
@@ -899,17 +1095,14 @@
           localStorage.setItem('currentUser', JSON.stringify(result.user));
           userName.textContent = result.user.username;
           
-          // НОВОЕ: Показываем видео вместо прямого перехода
           showToast(result.message, 'success');
           closeModal();
           showEntryVideo();
         } else {
-          // НОВОЕ: Показываем toast вместо alert
           showToast(result.error, 'error');
         }
       } catch (error) {
         console.error('Ошибка:', error);
-        // НОВОЕ: Показываем toast вместо alert
         showToast('Ошибка подключения к серверу!', 'error');
       } finally {
         submitBtn.disabled = false;
@@ -943,7 +1136,6 @@
           localStorage.setItem('currentUser', JSON.stringify(result.user));
           userName.textContent = result.user.username;
           
-          // НОВОЕ: Показываем видео вместо прямого перехода
           showToast(result.message, 'success');
           closeLoginModal();
           showEntryVideo();
@@ -952,7 +1144,6 @@
           errorDiv.textContent = result.error || 'Ошибка входа';
           errorDiv.style.display = 'block';
           
-          // НОВОЕ: Показываем toast вместо alert
           showToast(result.error, 'error');
         }
       } catch (error) {
@@ -961,7 +1152,6 @@
         errorDiv.textContent = 'Ошибка подключения к серверу';
         errorDiv.style.display = 'block';
         
-        // НОВОЕ: Показываем toast вместо alert
         showToast('Ошибка подключения к серверу!', 'error');
       } finally {
         submitBtn.disabled = false;
