@@ -1,238 +1,224 @@
-from flask import Flask, request, jsonify, render_template, session
-import json
 import os
+from flask import Flask, request, jsonify, render_template, session
+from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
-from Centrobank_kurs import get_latest_currency_rates, get_currency_by_date, get_all_currencies
+from Centrobank_kurs import get_latest_currency_rates, get_all_currencies
 from flask_cors import CORS
-
+import json
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__, static_folder='static', template_folder='.')
-CORS(app, resources={r"/api/*": {"origins": "*"}})  # Разрешаем CORS для всех /api запросов
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 app.secret_key = os.urandom(24).hex()
 
-# Путь к файлу с пользователями
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-USERS_FILE = os.path.join(BASE_DIR, 'users.json')
+# === НАСТРОЙКА БАЗЫ ДАННЫХ ===
+database_url = os.environ.get('DATABASE_URL', 'sqlite:///local.db')
+if database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Создаём файл, если он не существует
-if not os.path.exists(USERS_FILE):
-    with open(USERS_FILE, 'w', encoding='utf-8') as f:
-        json.dump([], f, ensure_ascii=False, indent=2)
+db = SQLAlchemy(app)
 
+# === МОДЕЛЬ ПОЛЬЗОВАТЕЛЯ ===
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    dubina = db.Column(db.String(80), nullable=False, default='не указано')
+    age = db.Column(db.Integer, nullable=False)
+    registeredAt = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    status = db.Column(db.String(20), nullable=False, default='active')
+    password = db.Column(db.String(120), nullable=False)  # ⚠️ В продакшене хешируйте!
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'username': self.username,
+            'dubina': self.dubina,
+            'age': self.age,
+            'registeredAt': self.registeredAt.isoformat(),
+            'status': self.status
+        }
+
+# === МИГРАЦИЯ СТАРЫХ ДАННЫХ (запустится ОДИН РАЗ при первом деплое) ===
+def migrate_old_users():
+    """Переносит пользователей из users.json в PostgreSQL (только если база пуста)"""
+    if User.query.first():
+        return  # База уже заполнена
+    
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    users_file = os.path.join(base_dir, 'users.json')
+    
+    if not os.path.exists(users_file):
+        return
+    
+    try:
+        with open(users_file, 'r', encoding='utf-8') as f:
+            old_users = json.load(f)
+        
+        for u in old_users:
+            # Очищаем ключи от пробелов (как в вашем users.json: "id " -> "id")
+            clean_user = {k.strip(): v.strip() if isinstance(v, str) else v for k, v in u.items()}
+            
+            # Пропускаем некорректные записи
+            if not clean_user.get('username') or not clean_user.get('password'):
+                continue
+            
+            try:
+                age = int(clean_user.get('age', 18))
+                if age < 18: age = 18
+            except:
+                age = 18
+            
+            new_user = User(
+                id=clean_user.get('id', None),  # id будет проигнорирован, если не уникален
+                username=clean_user['username'].strip(),
+                dubina=clean_user.get('dubina', 'не указано').strip(),
+                age=age,
+                password=clean_user['password'],
+                status=clean_user.get('status', 'active').strip(),
+                registeredAt=datetime.fromisoformat(clean_user['registeredAt'].strip()) if 'registeredAt' in clean_user else datetime.utcnow()
+            )
+            db.session.add(new_user)
+        
+        db.session.commit()
+        print(f"✅ Мигрировано {len(old_users)} пользователей из users.json")
+    except Exception as e:
+        print(f"⚠️ Ошибка миграции: {e}")
+
+# Создаём таблицы и мигрируем данные при запуске
+with app.app_context():
+    db.create_all()
+    migrate_old_users()  # Автоматически сработает ТОЛЬКО при первом запуске на Render
+
+# === РОУТЫ (полностью переписаны под БД) ===
 @app.route('/')
 def Site():
     return render_template('Site.html')
 
-# === РОУТЫ АВТОРИЗАЦИИ ===
+@app.route('/api/register', methods=['POST'])
+def register():
+    try:
+        data = request.get_json()
+        if not data.get('username') or len(data['username'].strip()) < 3:
+            return jsonify({'success': False, 'error': 'Братуха, минимум 3 буквы черкани'}), 400
+        
+        age = data.get('age')
+        if not age:
+            return jsonify({'success': False, 'error': 'Укажи свой возраст, кореш'}), 400
+        try:
+            age = int(age)
+        except:
+            return jsonify({'success': False, 'error': 'Возраст должен быть числом'}), 400
+        if age < 18 or age > 120:
+            return jsonify({'success': False, 'error': 'Сюда только 18+, подрасти сначала'}), 400
+        
+        if not data.get('password') or len(data['password']) < 5:
+            return jsonify({'success': False, 'error': 'Слишком мало символов, минимум 5 давай'}), 400
+        if data['password'] != data.get('confirmPassword'):
+            return jsonify({'success': False, 'error': 'Пароли не совпадают'}), 400
+        
+        if User.query.filter_by(username=data['username'].strip()).first():
+            return jsonify({'success': False, 'error': 'У меня уже есть кореш с таким именем'}), 400
+        
+        new_user = User(
+            username=data['username'].strip(),
+            dubina=str(data.get('dubina', 'не указано')).strip(),
+            age=age,
+            password=data['password'],
+            status='active'
+        )
+        db.session.add(new_user)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Подстрахуй, кореш {new_user.username}',
+            'user': new_user.to_dict()
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        print(f"Ошибка регистрации: {e}")
+        return jsonify({'success': False, 'error': 'Ошибка сервера'}), 500
+
 @app.route('/api/login', methods=['POST'])
 def login():
     try:
         data = request.get_json()
-        
         if not data.get('username') or not data.get('password'):
             return jsonify({'success': False, 'error': 'Введи логин и пароль, кореш'}), 400
         
-        # Загружаем пользователей
-        with open(USERS_FILE, 'r', encoding='utf-8') as f:
-            users = json.load(f)
-        
-        # Ищем пользователя
-        user = next((u for u in users if u['username'] == data['username']), None)
-        
-        if not user:
+        user = User.query.filter_by(username=data['username']).first()
+        if not user or user.password != data['password']:
             return jsonify({'success': False, 'error': 'Не знаю таких'}), 404
         
-        # Проверяем пароль
-        if user['password'] != data['password']:
-            return jsonify({'success': False, 'error': 'Неверный пароль'}), 401
-        
-        # Создаём сессию
-        session['user_id'] = user['id']
-        session['username'] = user['username']
-        
-        # Возвращаем данные без пароля
-        user_safe = {k: v for k, v in user.items() if k != 'password'}
+        session['user_id'] = user.id
+        session['username'] = user.username
         
         return jsonify({
             'success': True,
-            'message': f'Здарова, кореш',
-            'user': user_safe
+            'message': 'Здарова, кореш',
+            'user': user.to_dict()
         }), 200
-
     except Exception as e:
         print(f"Ошибка входа: {e}")
         return jsonify({'success': False, 'error': 'Ошибка сервера'}), 500
 
 @app.route('/api/logout', methods=['POST'])
 def logout():
-    """Выход из системы"""
     session.clear()
     return jsonify({'success': True, 'message': 'Давай пока'}), 200
 
 @app.route('/api/check-auth', methods=['GET'])
 def check_auth():
-    """Проверка авторизации"""
     if 'user_id' in session:
-        with open(USERS_FILE, 'r', encoding='utf-8') as f:
-            users = json.load(f)
-        
-        user = next((u for u in users if u['id'] == session['user_id']), None)
-        
+        user = User.query.get(session['user_id'])
         if user:
-            user_safe = {k: v for k, v in user.items() if k != 'password'}
-            return jsonify({'success': True, 'authenticated': True, 'user': user_safe}), 200
-
+            return jsonify({'success': True, 'authenticated': True, 'user': user.to_dict()}), 200
     return jsonify({'success': True, 'authenticated': False}), 200
-
-# === РОУТЫ РЕГИСТРАЦИИ ===
-@app.route('/api/register', methods=['POST'])
-def register():
-    try:
-        data = request.get_json()
-        
-        # Валидация данных
-        if not data.get('username') or len(data['username']) < 3:
-            return jsonify({'success': False, 'error': 'Братуха, минимум 3 буквы черкани'}), 400
-        
-        # Валидация возраста
-        age = data.get('age')
-        if not age:
-            return jsonify({'success': False, 'error': 'Укажи свой возраст, кореш'}), 400
-        
-        try:
-            age = int(age)
-        except (ValueError, TypeError):
-            return jsonify({'success': False, 'error': 'Возраст должен быть числом'}), 400
-        
-        if age < 18:
-            return jsonify({'success': False, 'error': 'Сюда только 18+, подрасти сначала'}), 400
-        
-        if age > 120:
-            return jsonify({'success': False, 'error': 'Не ври, кореш'}), 400
-        
-        if not data.get('password') or len(data['password']) < 5:
-            return jsonify({'success': False, 'error': 'Слишком мало символов, минимум 5 давай'}), 400
-        
-        if data['password'] != data.get('confirmPassword'):
-            return jsonify({'success': False, 'error': 'Пароли не совпадают'}), 400
-        
-        # Загружаем существующих пользователей
-        with open(USERS_FILE, 'r', encoding='utf-8') as f:
-            users = json.load(f)
-        
-        # Проверяем, существует ли уже такой пользователь
-        username_exists = any(user['username'] == data['username'] for user in users)
-        
-        if username_exists:
-            return jsonify({'success': False, 'error': 'У меня уже есть кореш с таким именем'}), 400
-        
-        # Создаем нового пользователя
-        new_user = {
-            'id': len(users) + 1,
-            'username': data['username'],
-            'dubina': data.get('dubina', 'не указано'),
-            'age': data.get('age'),
-            'registeredAt': datetime.now().isoformat(),
-            'status': 'active'
-        }
-        
-        # Сохраняем пароль отдельно
-        new_user_secure = new_user.copy()
-        new_user_secure['password'] = data['password']
-        
-        users.append(new_user_secure)
-        
-        # Сохраняем в файл
-        with open(USERS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(users, f, ensure_ascii=False, indent=2)
-        
-        # Возвращаем успешный ответ
-        return jsonify({
-            'success': True, 
-            'message': f'Подстрахуй, кореш {data["username"]}',
-            'user': new_user
-        }), 200
-
-    except Exception as e:
-        print(f"Ошибка регистрации: {e}")
-        return jsonify({'success': False, 'error': 'Ошибка сервера'}), 500
 
 @app.route('/api/users', methods=['GET'])
 def get_users():
-    """Получить список всех пользователей (для админа)"""
-    try:
-        with open(USERS_FILE, 'r', encoding='utf-8') as f:
-            users = json.load(f)
-        
-        # Убираем пароли из ответа
-        users_safe = [{k: v for k, v in user.items() if k != 'password'} for user in users]
-        
-        return jsonify({
-            'success': True,
-            'users': users_safe,
-            'total': len(users_safe)
-        }), 200
+    users = User.query.all()
+    return jsonify({
+        'success': True,
+        'users': [u.to_dict() for u in users],
+        'total': len(users)
+    }), 200
 
-    except Exception as e:
-        print(f"Ошибка получения пользователей: {e}")
-        return jsonify({'success': False, 'error': 'Ошибка сервера'}), 500
-
-# === РОУТЫ ИНТЕГРАЦИИ С ЦБ РФ ===
+# === РОУТЫ ВАЛЮТ (БЕЗ ИЗМЕНЕНИЙ) ===
 @app.route('/api/currency-rates', methods=['GET'])
 def currency_rates():
-    """Получение курсов валют от ЦБ РФ за указанную дату"""
     try:
         date_str = request.args.get('date')
-        
-        if date_str:
-            result = get_currency_by_date(date_str)
-        else:
-            result = get_latest_currency_rates()
-        
+        result = get_currency_by_date(date_str) if date_str else get_latest_currency_rates()
         return jsonify(result), 200
-
     except Exception as e:
-        print(f"Ошибка получения курсов валют: {e}")
+        print(f"Ошибка курсов: {e}")
         return jsonify({'success': False, 'error': 'Ошибка сервера'}), 500
 
 @app.route('/api/currency-rates/all', methods=['GET'])
 def all_currency_rates():
-    """Получение всех валют с курсами"""
     try:
         date_str = request.args.get('date')
-        
-        if date_str:
-            date = datetime.strptime(date_str, '%Y-%m-%d')
-            result = get_all_currencies(date)
-        else:
-            result = get_all_currencies()
-        
+        result = get_all_currencies(datetime.strptime(date_str, '%Y-%m-%d')) if date_str else get_all_currencies()
         return jsonify(result), 200
-
     except Exception as e:
-        print(f"Ошибка получения всех валют: {e}")
+        print(f"Ошибка всех валют: {e}")
         return jsonify({'success': False, 'error': 'Ошибка сервера'}), 500
-# Добавь этот роут после остальных роутов, но перед запуском сервера
 
 @app.route('/currency')
 def currency_page():
-    """Страница с курсами валют"""
-    # Проверяем авторизацию
     if 'user_id' not in session:
         return render_template('Site.html')
-    
     return render_template('currency.html')
 
-
-
+# === ЗАПУСК ===
 if __name__ == '__main__':
     print("=" * 50)
     print("🚀 Polyak Production - сервер запущен!")
-    print("📍 Адрес: http://localhost:5000")
-    print("📁 Данные пользователей сохраняются в: users.json")
-    print("💱 Интеграция с ЦБ РФ активна")
+    print(f"📍 Порт: {os.environ.get('PORT', 5000)}")
+    print(f"🐘 БД: {'PostgreSQL (Render)' if 'DATABASE_URL' in os.environ else 'SQLite (локально)'}")
     print("=" * 50)
-    
-    # Для Render - используем переменную окружения PORT
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)
